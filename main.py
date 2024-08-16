@@ -41,9 +41,9 @@ def main():
         logger.error(f'File {sha256_list} not found.')
         return
 
-    # Connect to Macrometa
+    # Connect to Macrometa. C8Client will use https by default.
     try:
-        macrometa_client = C8Client(protocol='https', host='play.paas.macrometa.io', port=443, apikey=api_key, geofabric=fabric)
+        macrometa_client = C8Client(host='play.paas.macrometa.io', port=443, apikey=api_key, geofabric=fabric)
     except Exception as e:
         logger.error(f'Failed to connect to Macrometa: {e}')
         return
@@ -55,20 +55,21 @@ def main():
         logger.error(f'Failed to get document: {e}')
         meta_data = {}
 
-    # Truncate the collection
+    # Truncate the collection, just throw everything away.
     try:
         macrometa_client.collection(COLLECTION_NAME).truncate()
     except CollectionTruncateError:
         logger.error(f'Truncation of collection "{COLLECTION_NAME}" failed')
 
-    # Update the metadata key, feel free to add extra fields
+    # Update the metadata key, feel free to add extra fields like to this object
     meta_data['active_version'] = 'v45'
     meta_data['version_updated'] = int(time.time())
 
     # Add metadata info to kv_list, the list we're going to write to our collection
     kv_list.append({'_key': 'metadata', 'value': meta_data})
 
-    # Insert the key-value pairs into the collection
+    # Insert the key-value pairs into the collection.
+    # We might need to break this up in more calls.
     try:
         macrometa_client.insert_key_value_pair(COLLECTION_NAME, kv_list)
     except InsertKVError:
